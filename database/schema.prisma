@@ -1,0 +1,162 @@
+// ==========================================
+// Prisma Schema Definition for ComplianceIQ
+// Database Engine: PostgreSQL Flexible Server
+// Spec Reference: docs/specs/03_database_schema.md
+// ==========================================
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [pgvector(map: "vector"), uuidOssp(map: "uuid-ossp")]
+}
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+// ------------------------------------------
+// Enums
+// ------------------------------------------
+
+enum ControlSeverity {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum EvidenceStatus {
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+  OVERRIDDEN
+}
+
+enum ComplianceStatus {
+  COMPLIANT
+  NON_COMPLIANT
+  PARTIAL
+  NEEDS_HUMAN_REVIEW
+}
+
+enum ActorType {
+  AGENT
+  HUMAN_OPERATOR
+  SYSTEM
+}
+
+enum RemediationStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  DISMISSED
+}
+
+// ------------------------------------------
+// Models
+// ------------------------------------------
+
+model Framework {
+  id             String             @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  code           String             @unique @db.VarChar(50)
+  name           String             @db.Text
+  version        String             @db.VarChar(20)
+  description    String?            @db.Text
+  effectiveDate  DateTime?          @map("effective_date") @db.Timestamptz
+  createdAt      DateTime           @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime           @updatedAt @map("updated_at") @db.Timestamptz
+
+  controls       Control[]
+  gaps           RemediationPlan[]
+
+  @@map("frameworks")
+}
+
+model Control {
+  id                     String                                 @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  frameworkId            String                                 @map("framework_id") @db.Uuid
+  controlCode            String                                 @map("control_code") @db.VarChar(50)
+  title                  String                                 @db.Text
+  description            String                                 @db.Text
+  category               String                                 @db.VarChar(100)
+  severity               ControlSeverity                        @default(MEDIUM)
+  automated              Boolean                                @default(true)
+  evidenceRuleExpression Json?                                  @map("evidence_rule_expression") @db.JsonB
+  embedding              Unsupported("vector(1536)")?
+  createdAt              DateTime                               @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt              DateTime                               @updatedAt @map("updated_at") @db.Timestamptz
+
+  framework              Framework                              @relation(fields: [frameworkId], references: [id], onDelete: Cascade)
+  evidenceLogs           EvidenceLog[]
+  remediationPlans       RemediationPlan[]
+
+  @@unique([frameworkId, controlCode])
+  @@index([frameworkId], name: "idx_controls_framework_id")
+  @@index([category], name: "idx_controls_category")
+  @@map("controls")
+}
+
+model EvidenceLog {
+  id               String            @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  controlId        String            @map("control_id") @db.Uuid
+  collectorType    String            @map("collector_type") @db.VarChar(50)
+  sourceResourceId String            @map("source_resource_id") @db.Text
+  blobUri          String            @map("blob_uri") @db.Text
+  sha256Hash       String            @map("sha256_hash") @db.VarChar(64)
+  status           EvidenceStatus    @default(PENDING_REVIEW)
+  collectedAt      DateTime          @default(now()) @map("collected_at") @db.Timestamptz
+  expiresAt        DateTime?         @map("expires_at") @db.Timestamptz
+  metadata         Json?             @db.JsonB
+
+  control          Control           @relation(fields: [controlId], references: [id], onDelete: Cascade)
+  remediationPlans RemediationPlan[]
+
+  @@index([controlId], name: "idx_evidence_control_id")
+  @@index([status], name: "idx_evidence_status")
+  @@index([sha256Hash], name: "idx_evidence_sha256")
+  @@map("evidence_logs")
+}
+
+model RemediationPlan {
+  id                  String           @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  frameworkId         String           @map("framework_id") @db.Uuid
+  controlId           String           @map("control_id") @db.Uuid
+  evidenceId          String?          @map("evidence_id") @db.Uuid
+  complianceStatus    ComplianceStatus @default(NEEDS_HUMAN_REVIEW) @map("compliance_status")
+  riskScore           Decimal          @map("risk_score") @db.Decimal(3, 2)
+  confidenceScore     Decimal          @default(0.85) @map("confidence_score") @db.Decimal(3, 2)
+  gapDetails          Json             @map("gap_details") @db.JsonB
+  advisoryRemediation String           @map("advisory_remediation") @db.Text
+  status              RemediationStatus@default(OPEN)
+  evaluatedAt         DateTime         @default(now()) @map("evaluated_at") @db.Timestamptz
+  createdAt           DateTime         @default(now()) @map("created_at") @db.Timestamptz
+
+  framework           Framework        @relation(fields: [frameworkId], references: [id], onDelete: Cascade)
+  control             Control          @relation(fields: [controlId], references: [id], onDelete: Cascade)
+  evidence            EvidenceLog?     @relation(fields: [evidenceId], references: [id], onDelete: SetNull)
+
+  @@index([frameworkId], name: "idx_remediation_framework_id")
+  @@index([controlId], name: "idx_remediation_control_id")
+  @@index([complianceStatus], name: "idx_remediation_compliance_status")
+  @@map("remediation_plans")
+}
+
+model AuditTrail {
+  id                 String           @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  frameworkId        String           @map("framework_id") @db.Uuid
+  eventType          String           @map("event_type") @db.VarChar(100)
+  actorId            String           @map("actor_id") @db.VarChar(128)
+  actorType          ActorType        @map("actor_type")
+  targetEntityId     String           @map("target_entity_id") @db.VarChar(128)
+  previousState      Json?            @map("previous_state") @db.JsonB
+  newState           Json?            @map("new_state") @db.JsonB
+  justificationNotes String?          @map("justification_notes") @db.Text
+  timestamp          DateTime         @default(now()) @db.Timestamptz
+  clientIp           String?          @map("client_ip") @db.VarChar(45)
+
+  @@index([frameworkId], name: "idx_audit_framework_id")
+  @@index([timestamp], name: "idx_audit_timestamp")
+  @@index([targetEntityId], name: "idx_audit_target_entity")
+  @@map("audit_trails")
+}
