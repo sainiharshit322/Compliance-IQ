@@ -1,0 +1,8 @@
+location            = "eastus"
+resource_group_name = "rg-complianceiq-dev"
+environment         = "dev"
+tags = {
+  Project     = "ComplianceIQ"
+  ManagedBy   = "Terraform"
+  Environment = "Dev"
+}
