@@ -1,0 +1,13 @@
+{
+  "name": "@complianceiq/audit-report-service",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Audit Report Generator Service & PDF Exporter",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "pdfkit": "^0.14.0"
+  }
+}
