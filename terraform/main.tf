@@ -64,9 +64,12 @@ module "cosmos" {
 }
 
 module "container_apps" {
-  source              = "./modules/container_apps"
-  location            = azurerm_resource_group.rg.location
-  resource_group_name = azurerm_resource_group.rg.name
-  environment         = var.environment
-  tags                = var.tags
+  source                   = "./modules/container_apps"
+  location                 = azurerm_resource_group.rg.location
+  resource_group_name      = azurerm_resource_group.rg.name
+  environment              = var.environment
+  collector_identity_id    = module.identity.collector_identity_id
+  gap_analysis_identity_id = module.identity.gap_analysis_identity_id
+  api_identity_id          = module.identity.api_identity_id
+  tags                     = var.tags
 }
