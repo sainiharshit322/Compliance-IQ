@@ -57,3 +57,13 @@ output "cosmos_container_name" {
   value       = module.cosmos.container_name
   description = "Cosmos DB Append-Only Audit Container Name"
 }
+
+output "orchestrator_api_fqdn" {
+  value       = module.container_apps.orchestrator_api_fqdn
+  description = "Orchestrator API Gateway FQDN Endpoint"
+}
+
+output "hitl_portal_fqdn" {
+  value       = module.container_apps.hitl_portal_fqdn
+  description = "Next.js HITL Portal FQDN Endpoint"
+}
