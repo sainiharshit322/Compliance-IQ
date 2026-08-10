@@ -27,15 +27,13 @@ resource "azurerm_user_assigned_identity" "api" {
 
 # RBAC Role Assignment: Evidence Collector -> WORM Storage Blob Data Contributor
 resource "azurerm_role_assignment" "collector_blob_contributor" {
-  count                = var.worm_container_resource_manager_id != "" ? 1 : 0
   scope                = var.worm_container_resource_manager_id
   role_definition_name = "Storage Blob Data Contributor"
   principal_id         = azurerm_user_assigned_identity.collector.principal_id
 }
 
-# RBAC Role Assignment: Evidence Collector -> Storage Queue Data Message Processer
+# RBAC Role Assignment: Evidence Collector -> Storage Queue Data Message Processor
 resource "azurerm_role_assignment" "collector_queue_processor" {
-  count                = var.evidence_queue_id != "" ? 1 : 0
   scope                = var.evidence_queue_id
   role_definition_name = "Storage Queue Data Message Processor"
   principal_id         = azurerm_user_assigned_identity.collector.principal_id
@@ -43,7 +41,6 @@ resource "azurerm_role_assignment" "collector_queue_processor" {
 
 # RBAC Role Assignment: Gap Analysis Agent -> WORM Storage Blob Data Reader
 resource "azurerm_role_assignment" "gap_analysis_blob_reader" {
-  count                = var.worm_container_resource_manager_id != "" ? 1 : 0
   scope                = var.worm_container_resource_manager_id
   role_definition_name = "Storage Blob Data Reader"
   principal_id         = azurerm_user_assigned_identity.gap_analysis.principal_id
