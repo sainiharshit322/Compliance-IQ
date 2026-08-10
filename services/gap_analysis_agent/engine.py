@@ -1,8 +1,9 @@
 import json
 import logging
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
+from services.gap_analysis_agent.audit_handler import AuditTrailHandler
 from services.gap_analysis_agent.schemas import (
     ComplianceStatusEnum,
     ControlContext,
@@ -32,9 +33,15 @@ CRITICAL OPERATIONAL RULES:
 
 
 class GapAnalysisEngine:
-    def __init__(self, openai_client: Optional[Any] = None, model_name: str = "gpt-4o"):
+    def __init__(
+        self,
+        openai_client: Optional[Any] = None,
+        cosmos_container: Optional[Any] = None,
+        model_name: str = "gpt-4o",
+    ):
         self.openai_client = openai_client
         self.model_name = os.getenv("OPENAI_MODEL", model_name)
+        self.audit_handler = AuditTrailHandler(cosmos_container=cosmos_container)
 
     def evaluate(self, input_data: GapAnalysisInput) -> GapAnalysisOutput:
         """
@@ -68,6 +75,12 @@ class GapAnalysisEngine:
             f"risk={output.risk_score}, confidence={output.confidence_score}, hitl={output.flagged_for_hitl}"
         )
         return output
+
+    def process_and_audit(self, input_data: GapAnalysisInput) -> Tuple[GapAnalysisOutput, Dict[str, Any]]:
+        """Evaluates evidence and persists formatted audit trail document."""
+        output = self.evaluate(input_data)
+        audit_record = self.audit_handler.save_audit_trail(input_data, output)
+        return output, audit_record
 
     def _can_use_llm(self) -> bool:
         return (
@@ -146,7 +159,6 @@ class GapAnalysisEngine:
                         f"Property '{required_prop}' value '{val}' does not match expected '{expected_val}'."
                     )
         else:
-            # Fallback evaluation based on payload status / is_compliant flags
             is_compliant = payload.get("is_compliant", True)
             if not is_compliant:
                 failed_conditions.append("Evidence payload contains non-compliant configuration status.")
