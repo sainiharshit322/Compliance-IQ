@@ -1,0 +1,79 @@
+name: ComplianceIQ CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - master
+      - main
+  pull_request:
+    branches:
+      - master
+      - main
+
+jobs:
+  test-and-lint:
+    name: Run Pytest Suite & Build Verification
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install Python Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Pytest Monorepo Test Suite
+        run: |
+          pytest --verbose
+
+      - name: Set up Node.js 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
+
+      - name: Install Frontend Dependencies & Build HITL Portal
+        run: |
+          npm install
+          npm run build:portal
+
+  azure-deploy:
+    name: Continuous Deployment to Azure Container Apps
+    needs: test-and-lint
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code Repository
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy FastAPI Orchestrator API Gateway to Azure Container Apps
+        uses: azure/container-apps-deploy-action@v1
+        with:
+          resourceGroup: rg-complianceiq-dev
+          containerAppName: ca-orchestrator-api-dev
+          targetPort: 8000
+          dockerfilePath: services/orchestrator_api/Dockerfile
+          appSourcePath: ${{ github.workspace }}
+
+      - name: Deploy Next.js HITL Portal to Azure Container Apps
+        uses: azure/container-apps-deploy-action@v1
+        with:
+          resourceGroup: rg-complianceiq-dev
+          containerAppName: ca-hitl-portal-dev
+          targetPort: 3000
+          dockerfilePath: apps/hitl_portal/Dockerfile
+          appSourcePath: ${{ github.workspace }}/apps/hitl_portal
