@@ -34,11 +34,12 @@ jobs:
         run: |
           pytest --verbose
 
-      - name: Set up Node.js 18
+      - name: Set up Node.js 20
         uses: actions/setup-node@v4
         with:
-          node-version: "18"
+          node-version: "20"
           cache: "npm"
+          cache-dependency-path: "**/package-lock.json"
 
       - name: Install Frontend Dependencies & Build HITL Portal
         run: |
