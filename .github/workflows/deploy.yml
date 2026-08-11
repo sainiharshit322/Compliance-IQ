@@ -44,10 +44,8 @@ jobs:
       - name: Install Frontend Dependencies & Build HITL Portal
         run: |
           if [ -f "package.json" ]; then npm install; fi
-          if [ -d "apps/hitl_portal/app" ] || [ -d "apps/hitl_portal/pages" ]; then
-            cd apps/hitl_portal && npm install && npm run build
-          else
-            echo "HITL Portal app directory not present on this branch; skipping Next.js build."
+          if [ -d "apps/hitl_portal" ]; then
+            cd apps/hitl_portal && npm install --no-workspaces && npm run build
           fi
 
   azure-deploy:
@@ -66,19 +64,9 @@ jobs:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Deploy FastAPI Orchestrator API Gateway to Azure Container Apps
-        uses: azure/container-apps-deploy-action@v1
-        with:
-          resourceGroup: rg-complianceiq-dev
-          containerAppName: ca-orchestrator-api-dev
-          targetPort: 8000
-          dockerfilePath: services/orchestrator_api/Dockerfile
-          appSourcePath: ${{ github.workspace }}
+        run: |
+          az containerapp update --name ca-orchestrator-api-dev --resource-group rg-complianceiq-dev --source .
 
       - name: Deploy Next.js HITL Portal to Azure Container Apps
-        uses: azure/container-apps-deploy-action@v1
-        with:
-          resourceGroup: rg-complianceiq-dev
-          containerAppName: ca-hitl-portal-dev
-          targetPort: 3000
-          dockerfilePath: apps/hitl_portal/Dockerfile
-          appSourcePath: ${{ github.workspace }}/apps/hitl_portal
+        run: |
+          az containerapp update --name ca-hitl-portal-dev --resource-group rg-complianceiq-dev --source apps/hitl_portal
