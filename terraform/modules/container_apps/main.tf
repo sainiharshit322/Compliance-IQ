@@ -8,7 +8,7 @@ resource "azurerm_container_app_environment" "cae" {
   tags                = var.tags
 }
 
-# 1. Evidence Collector Agent Container App (minReplicas = 0)
+# 1. Evidence Collector Agent Container App
 resource "azurerm_container_app" "collector_agent" {
   name                         = "ca-collector-${var.environment}"
   container_app_environment_id = azurerm_container_app_environment.cae.id
@@ -20,8 +20,17 @@ resource "azurerm_container_app" "collector_agent" {
     identity_ids = var.collector_identity_id != "" ? [var.collector_identity_id] : null
   }
 
+  ingress {
+    external_enabled = true
+    target_port      = 80
+    traffic_weight {
+      percentage      = 100
+      latest_revision = true
+    }
+  }
+
   template {
-    min_replicas = 0
+    min_replicas = 1
     max_replicas = 2
 
     container {
@@ -35,7 +44,7 @@ resource "azurerm_container_app" "collector_agent" {
   tags = var.tags
 }
 
-# 2. Gap Analysis Agent Container App (minReplicas = 0)
+# 2. Gap Analysis Agent Container App
 resource "azurerm_container_app" "gap_analysis_agent" {
   name                         = "ca-gap-analysis-${var.environment}"
   container_app_environment_id = azurerm_container_app_environment.cae.id
@@ -47,8 +56,17 @@ resource "azurerm_container_app" "gap_analysis_agent" {
     identity_ids = var.gap_analysis_identity_id != "" ? [var.gap_analysis_identity_id] : null
   }
 
+  ingress {
+    external_enabled = true
+    target_port      = 80
+    traffic_weight {
+      percentage      = 100
+      latest_revision = true
+    }
+  }
+
   template {
-    min_replicas = 0
+    min_replicas = 1
     max_replicas = 2
 
     container {
@@ -62,7 +80,7 @@ resource "azurerm_container_app" "gap_analysis_agent" {
   tags = var.tags
 }
 
-# 3. FastAPI Orchestrator API Gateway Container App (minReplicas = 0)
+# 3. FastAPI Orchestrator API Gateway Container App
 resource "azurerm_container_app" "orchestrator_api" {
   name                         = "ca-orchestrator-api-${var.environment}"
   container_app_environment_id = azurerm_container_app_environment.cae.id
@@ -76,7 +94,7 @@ resource "azurerm_container_app" "orchestrator_api" {
 
   ingress {
     external_enabled = true
-    target_port      = 8000
+    target_port      = 80
     traffic_weight {
       percentage      = 100
       latest_revision = true
@@ -84,7 +102,7 @@ resource "azurerm_container_app" "orchestrator_api" {
   }
 
   template {
-    min_replicas = 0
+    min_replicas = 1
     max_replicas = 2
 
     container {
@@ -98,7 +116,7 @@ resource "azurerm_container_app" "orchestrator_api" {
   tags = var.tags
 }
 
-# 4. Next.js 14 HITL Portal Container App (minReplicas = 0)
+# 4. Next.js 14 HITL Portal Container App
 resource "azurerm_container_app" "hitl_portal" {
   name                         = "ca-hitl-portal-${var.environment}"
   container_app_environment_id = azurerm_container_app_environment.cae.id
@@ -107,7 +125,7 @@ resource "azurerm_container_app" "hitl_portal" {
 
   ingress {
     external_enabled = true
-    target_port      = 3000
+    target_port      = 80
     traffic_weight {
       percentage      = 100
       latest_revision = true
@@ -115,7 +133,7 @@ resource "azurerm_container_app" "hitl_portal" {
   }
 
   template {
-    min_replicas = 0
+    min_replicas = 1
     max_replicas = 2
 
     container {

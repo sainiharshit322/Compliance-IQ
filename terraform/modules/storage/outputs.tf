@@ -36,6 +36,6 @@ output "queue_name" {
 }
 
 output "queue_id" {
-  value       = azurerm_storage_queue.evidence_jobs.id
-  description = "Resource ID of the evidence scan job queue"
+  value       = azurerm_storage_queue.evidence_jobs.resource_manager_id
+  description = "Resource Manager ID of the evidence scan job queue"
 }
