@@ -65,8 +65,8 @@ jobs:
 
       - name: Deploy FastAPI Orchestrator API Gateway to Azure Container Apps
         run: |
-          az containerapp up --name ca-orchestrator-api-dev --resource-group rg-complianceiq-dev --source . --ingress external --target-port 8000
+          az containerapp up --name ca-orchestrator-api-dev --resource-group rg-complianceiq-dev --location koreacentral --source . --ingress external --target-port 8000
 
       - name: Deploy Next.js HITL Portal to Azure Container Apps
         run: |
-          az containerapp up --name ca-hitl-portal-dev --resource-group rg-complianceiq-dev --source apps/hitl_portal --ingress external --target-port 3000
+          az containerapp up --name ca-hitl-portal-dev --resource-group rg-complianceiq-dev --location koreacentral --source apps/hitl_portal --ingress external --target-port 3000
