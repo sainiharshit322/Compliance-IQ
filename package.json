@@ -1,0 +1,14 @@
+{
+  "name": "compliance-iq",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Agentic AI Compliance Automation and Audit Evidence Platform",
+  "scripts": {
+    "build:portal": "npm --prefix apps/hitl_portal run build",
+    "dev:portal": "npm --prefix apps/hitl_portal run dev"
+  },
+  "workspaces": [
+    "apps/*",
+    "services/*"
+  ]
+}

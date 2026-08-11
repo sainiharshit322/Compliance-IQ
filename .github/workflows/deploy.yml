@@ -42,8 +42,12 @@ jobs:
 
       - name: Install Frontend Dependencies & Build HITL Portal
         run: |
-          npm install
-          npm run build:portal
+          if [ -f "package.json" ]; then npm install; fi
+          if [ -d "apps/hitl_portal/app" ] || [ -d "apps/hitl_portal/pages" ]; then
+            cd apps/hitl_portal && npm install && npm run build
+          else
+            echo "HITL Portal app directory not present on this branch; skipping Next.js build."
+          fi
 
   azure-deploy:
     name: Continuous Deployment to Azure Container Apps
